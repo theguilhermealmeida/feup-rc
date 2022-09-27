@@ -21,7 +21,23 @@
 
 #define BUF_SIZE 256
 
+#define FLAG 0x7E
+#define A 0x03
+#define C_SET 0x03
+#define BCC_SET A^C_SET
+
 volatile int STOP = FALSE;
+
+typedef enum {
+    START,
+    FLAG_RCV,
+    A_RCV,
+    C_RCV,
+    BCC_OK,
+    STOP_S
+} STATE;
+
+STATE state = START;
 
 int main(int argc, char *argv[])
 {
@@ -94,6 +110,62 @@ int main(int argc, char *argv[])
     unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
     unsigned char buf2[BUF_SIZE + 1] = {0};
     int count = 0;
+    
+    int bytes;
+
+    
+    while (state != STOP_S) {
+        printf("state: %d\n", (int)state);
+        bytes = read(fd, buf, 1);
+        printf("%u\n", buf[0]);
+        switch(state) {
+            case START:
+                if (buf[0] == FLAG) {
+                    state = FLAG_RCV;
+                    }
+                break;
+                
+            case FLAG_RCV:
+                if (buf[0] == A) {
+                   state = A_RCV;
+                   }    
+                else if (buf[0] == FLAG) {
+                   state = FLAG_RCV;
+                    }
+                else {state = START;}
+                  
+                break;
+                
+            case A_RCV:
+                if (buf[0] == C_SET) {
+                   state = C_RCV;
+                   }
+                else if (buf[0] == FLAG) {
+                   state = FLAG_RCV;
+                    }
+                else {state = START;}
+                  
+             
+                break;
+            
+            case C_RCV:
+                if (buf[0] == BCC_SET) {
+                   state = BCC_OK;
+                   }
+                else if (buf[0] == FLAG) {
+                    state = FLAG_RCV;
+                    }
+                else { state = START;}
+                
+                break;
+           
+            case BCC_OK:
+                printf("entrou");
+                state = STOP_S;
+        }
+    }
+    
+    printf("success");
 
     while (STOP == FALSE)
     {
@@ -101,18 +173,19 @@ int main(int argc, char *argv[])
         int bytes = read(fd, buf, 1);
         buf[bytes] = '\0'; // Set end of string to '\0', so we can printf
 
-        printf("%s\n", buf);
+        printf("%u\n", buf[0]);
         buf2[count] = buf[0];
         count++;
-        
+        /*
         if (buf[0] == '\0')
             STOP = TRUE;
+            */
     }
     buf2[count + 1] = '\0';
-    printf("%s\n", buf2);
+    // printf("%s\n", buf2);
     
-    int bytes = write(fd, buf2, count + 1);
-    printf("%d bytes written\n", count + 1);
+    // int bytes = write(fd, buf2, count + 1);
+    printf("%d bytes written\n", count + 1);    
 
     // The while() cycle should be changed in order to respect the specifications
     // of the protocol indicated in the Lab guide
