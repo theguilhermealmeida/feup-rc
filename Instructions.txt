@@ -1,0 +1,15 @@
+1) Open the terminal in the lab directory.
+
+2) Paste the following command in order to crete two serial ports and establish the connection between them.
+   -> "socat -d -d pty,raw,echo=0 pty,raw,echo=0"
+
+3) Open another terminal in the lab directory and compile the .c file (i.e., gcc -o <filename>.c filename)
+   -> This corresponds to the writer.
+
+4) In the same terminal, write "./<filename> dev/ttys001". NOTE: Here the filename is the executable, not 
+   the .c file, so it does ot end with any termination
+
+5) Open another terminal in the lab directory and compile the .c file (i.e., gcc -o <filename>.c filename)
+   -> This corresponds to the reader.
+
+6) In the same terminal, write "./<filename> dev/ttys002". NOTE: Here the filename is the executable, not the .c file, so the one that does not end with any termination
