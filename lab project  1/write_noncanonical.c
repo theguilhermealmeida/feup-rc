@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include <signal.h>
 
 // Baudrate settings are defined in <asm/termbits.h>, which is
 // included by <termios.h>
@@ -25,11 +26,43 @@
 #define A 0x03
 #define C_SET 0x03
 #define BCC_SET A^C_SET
+#define C_UA 0x07
+#define BCC_UA A^C_UA
 
 volatile int STOP = FALSE;
 
+typedef enum {
+    START,
+    FLAG_RCV,
+    A_RCV,
+    C_RCV,
+    BCC_OK,
+    STOP_S
+} STATE;
+
+STATE state = START;
+
+int alarmEnabled = FALSE;
+int alarmCount = 0;
+
+int UA_RCV = FALSE;
+
+// Alarm function handler
+void alarmHandler(int signal)
+{
+    alarmEnabled = FALSE;
+    alarmCount++;
+    state = STOP_S;
+
+    printf("Alarm #%d\n", alarmCount);
+}
+
 int main(int argc, char *argv[])
 {
+
+    // Set alarm function handler
+    (void)signal(SIGALRM, alarmHandler);
+
     // Program usage: Uses either COM1 or COM2
     const char *serialPortName = argv[1];
 
@@ -73,7 +106,7 @@ int main(int argc, char *argv[])
     // Set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0; // Inter-character timer unused
-    newtio.c_cc[VMIN] = 5;  // Blocking read until 5 chars received
+    newtio.c_cc[VMIN] = 0;  // Blocking read until 5 chars received
 
     // VTIME e VMIN should be changed in order to protect with a
     // timeout the reception of the following character(s)
@@ -96,7 +129,7 @@ int main(int argc, char *argv[])
 
     // Create string to send
     unsigned char SET[5];
-    unsigned char buf2[BUF_SIZE + 1] = {0};
+    unsigned char buf[BUF_SIZE + 1] = {0};
    
     SET[0] = FLAG;
     SET[1] = A;
@@ -104,23 +137,77 @@ int main(int argc, char *argv[])
     SET[3] = BCC_SET;
     SET[4] = FLAG;
 
-    int bytes = write(fd, SET, 5);
-    printf("%d bytes written\n", bytes);
+    while(!UA_RCV){
 
-    // Wait until all bytes have been written to the serial port
-    sleep(1);
-
-    while (STOP == FALSE)
-    {
+        printf("aqui1\n");
         
-        int bytes2 = read(fd, buf2, 1);
-        buf2[bytes2] = '\0'; // Set end of string to '\0', so we can printf
+        state = START;
+        int bytes = write(fd, SET, 5);
+        printf("%d bytes written\n", bytes);
+        // Wait until all bytes have been written to the serial port
+        sleep(1);
 
-        printf("%s\n", buf2, bytes2);
+        alarm(3);
+        alarmEnabled = TRUE;
+        
 
-        if (buf2[0] == '\0')
-            STOP = TRUE;
+        while (state != STOP_S) {
+        printf("state: %d\n", (int)state);
+        bytes = read(fd, buf, 1);
+        if (bytes > 0){
+            printf("%u\n", buf[0]);
+            switch(state) {
+                case START:
+                    if (buf[0] == FLAG) {
+                        state = FLAG_RCV;
+                        }
+                    break;
+
+                case FLAG_RCV:
+                    if (buf[0] == A) {
+                       state = A_RCV;
+                       }
+                    else if (buf[0] == FLAG) {
+                       state = FLAG_RCV;
+                        }
+                    else {state = START;}
+
+                    break;
+
+                case A_RCV:
+                    if (buf[0] == C_UA) {
+                       state = C_RCV;
+                       }
+                    else if (buf[0] == FLAG) {
+                       state = FLAG_RCV;
+                        }
+                    else {state = START;}
+
+
+                    break;
+
+                case C_RCV:
+                    if (buf[0] == (BCC_UA)) {
+                       state = BCC_OK;
+                       }
+                    else if (buf[0] == FLAG) {
+                        state = FLAG_RCV;
+                        }
+                    else { state = START;}
+
+                    break;
+
+                case BCC_OK:
+                    //printf("entrou");
+                    state = STOP_S;
+                    UA_RCV = TRUE;
+            }
+        }
     }
+
+    }
+
+    printf("success ua received\n");
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
