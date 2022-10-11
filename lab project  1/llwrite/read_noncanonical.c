@@ -1,4 +1,4 @@
-// Write to serial port in non-canonical mode
+// Read from serial port in non-canonical mode
 //
 // Modified by: Eduardo Nuno Almeida [enalmeida@fe.up.pt]
 
@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
-#include <signal.h>
 
 // Baudrate settings are defined in <asm/termbits.h>, which is
 // included by <termios.h>
@@ -26,6 +25,7 @@
 #define A 0x03
 #define C_SET 0x03
 #define BCC_SET A^C_SET
+
 #define C_UA 0x07
 #define BCC_UA A^C_UA
 
@@ -37,32 +37,14 @@ typedef enum {
     A_RCV,
     C_RCV,
     BCC_OK,
+    DATA_RCV,
     STOP_S
 } STATE;
 
 STATE state = START;
 
-int alarmEnabled = FALSE;
-int alarmCount = 0;
-
-int UA_RCV = FALSE;
-
-// Alarm function handler
-void alarmHandler(int signal)
-{
-    alarmEnabled = FALSE;
-    alarmCount++;
-    state = STOP_S;
-
-    printf("Alarm #%d\n", alarmCount);
-}
-
 int main(int argc, char *argv[])
 {
-
-    // Set alarm function handler
-    (void)signal(SIGALRM, alarmHandler);
-
     // Program usage: Uses either COM1 or COM2
     const char *serialPortName = argv[1];
 
@@ -76,15 +58,16 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Open serial port device for reading and writing, and not as controlling tty
+    // Open serial port device for reading and writing and not as controlling tty
     // because we don't want to get killed if linenoise sends CTRL-C.
     int fd = open(serialPortName, O_RDWR | O_NOCTTY);
-
     if (fd < 0)
     {
         perror(serialPortName);
         exit(-1);
     }
+
+        // printf("New termios structure set\n");
 
     struct termios oldtio;
     struct termios newtio;
@@ -127,39 +110,28 @@ int main(int argc, char *argv[])
 
     printf("New termios structure set\n");
 
-    // Create string to send
-    unsigned char SET[5];
-    unsigned char buf[BUF_SIZE + 1] = {0};
-   
-    SET[0] = FLAG;
-    SET[1] = A;
-    SET[2] = C_SET;
-    SET[3] = BCC_SET;
-    SET[4] = FLAG;
+    // Loop for input
+    unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
+    unsigned char buf2[BUF_SIZE + 1] = {0};
+    unsigned char data[500] = {0};
+    int count_data = 0;
 
-    while(!UA_RCV){
+    int bytes;
+    
+    unsigned char C[1];
+    
 
-        printf("aqui1\n");
+    while (state != STOP_S) {
         
-        state = START;
-        int bytes = write(fd, SET, 5);
-        printf("%d bytes written\n", bytes);
-        // Wait until all bytes have been written to the serial port
-        sleep(1);
-
-        alarm(3);
-        alarmEnabled = TRUE;
-        
-
-        while (state != STOP_S) {
-        printf("state: %d\n", (int)state);
         bytes = read(fd, buf, 1);
-        if (bytes > 0){
-            printf("%u\n", buf[0]);
+
+        if (bytes > 0) {
+             printf("state: %d\n", (int)state);
+             printf("%d\n", buf[0]);
             switch(state) {
                 case START:
                     if (buf[0] == FLAG) {
-                        state = FLAG_RCV;
+                        state = FLAG_RCV;   
                         }
                     break;
 
@@ -175,8 +147,9 @@ int main(int argc, char *argv[])
                     break;
 
                 case A_RCV:
-                    if (buf[0] == C_UA) {
+                    if (buf[0] == 0) {
                        state = C_RCV;
+                       C[0] = 0;
                        }
                     else if (buf[0] == FLAG) {
                        state = FLAG_RCV;
@@ -187,7 +160,7 @@ int main(int argc, char *argv[])
                     break;
 
                 case C_RCV:
-                    if (buf[0] == (BCC_UA)) {
+                    if (buf[0] == (A^C[0])) {
                        state = BCC_OK;
                        }
                     else if (buf[0] == FLAG) {
@@ -198,16 +171,79 @@ int main(int argc, char *argv[])
                     break;
 
                 case BCC_OK:
-                    //printf("entrou");
-                    state = STOP_S;
-                    UA_RCV = TRUE;
-            }
+                    if (buf[0] == FLAG) {
+                        state = FLAG_RCV;
+                    }
+                    else {
+                        data[count_data] = buf[0];
+                        count_data++;
+                        state = DATA_RCV;}
+                    
+                    break;
+               
+                case DATA_RCV:
+                    if (buf[0] == FLAG) {
+                        state = STOP_S;
+                    }
+                    else {
+                        data[count_data] = buf[0];
+                        count_data++;
+                    }
+                    
+                    
+                    
+                    break;
+           }
         }
     }
 
+    for (int i = 0; i < count_data; i++) {
+        printf("%d\n", data[i]);
     }
+    
+    unsigned char BCC2 = 0;
+    
+    for (int i = 0; i < count_data-1; i++) {
+        BCC2 = BCC2^data[i];
+       
+    }
+    
+    printf("BCC2: %d\n", BCC2);
+    
+    if (BCC2 == data[count_data-1]) {
+        printf("BCC2 ok!");
+    }
+    else {
+        printf("BCC2 FAILED!");
+    }
+       
+   
+    return 0;
+    
+  
+   unsigned char UA[5];
+   
+   UA[0] = FLAG;
+   UA[1] = A;
+   UA[2] = C_UA;
+   UA[3] = BCC_UA;
+   UA[4] = FLAG;
+   /*
+   while (1) {
+    
+    bytes = read(fd, buf, 1);
+    if (bytes > 0) {
+        printf("%d\n", buf[0]);
+    }
+   }
+   */
+   bytes = write(fd,UA,5);
+   
+   
 
-    printf("success ua received\n");
+
+    // The while() cycle should be changed in order to respect the specifications
+    // of the protocol indicated in the Lab guide
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
