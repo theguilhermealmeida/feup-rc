@@ -111,7 +111,6 @@ int main(int argc, char *argv[])
 
     // Loop for input
     unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
-    unsigned char buf2[BUF_SIZE + 1] = {0};
     int count = 0;
 
     int bytes;
