@@ -11,6 +11,8 @@
 #define C_UA 0x07
 #define BCC_UA A ^ C_UA
 #define C_RR 0x05
+#define C_DISC 0x0B
+#define BCC_DISC A ^ C_DISC
 
 volatile int STOP = FALSE;
 
@@ -29,8 +31,9 @@ STATE state = START;
 
 int alarmEnabled = FALSE;
 int alarmCount = 0;
+int ns;
+int nr;
 
-int fd;
 struct termios oldtio;
 struct termios newtio;
 
@@ -57,7 +60,7 @@ int llopen(LinkLayer connectionParameters)
     // Set alarm function handler
     (void)signal(SIGALRM, alarmHandler);
 
-    fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
+    int fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
 
     if (fd < 0)
     {
@@ -96,6 +99,7 @@ int llopen(LinkLayer connectionParameters)
 
     if (connectionParameters.role) // if recetor
     {
+        nr = 1;
         unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
 
         int bytes;
@@ -204,6 +208,7 @@ int llopen(LinkLayer connectionParameters)
     if (!connectionParameters.role) // if emissor
     {
         // Create string to send
+        ns = 0;
         unsigned char SET[5];
         unsigned char buf[BUF_SIZE + 1] = {0};
 
@@ -217,8 +222,8 @@ int llopen(LinkLayer connectionParameters)
         {
             if (alarmCount >= 3)
             {
-                printf("Maximum tries reached. Ending program\n");
-                break;
+                printf("1Maximum tries reached. Ending program\n");
+                return -1;
             }
             state = START;
             int bytes = write(fd, SET, 5);
@@ -313,13 +318,13 @@ int llopen(LinkLayer connectionParameters)
             printf("success ua received\n");
         }
     }
-    return 0;
+    return fd;
 }
 
 ////////////////////////////////////////////////
 // LLWRITE
 ////////////////////////////////////////////////
-int llwrite(const unsigned char *buf, int bufSize)
+int llwrite(int fd,const unsigned char *buf, int bufSize)
 {
     unsigned char buffer[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
     int RR_RCV = FALSE;
@@ -329,7 +334,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     I[0] = FLAG;
     I[1] = A;
-    I[2] = 0X00;
+    I[2] = ns;
     I[3] = I[1] ^ I[2];
     for (int i = 0; i < bufSize;i++){
         I[buf_cnt] = buf[i];
@@ -343,8 +348,8 @@ int llwrite(const unsigned char *buf, int bufSize)
     {
         if (alarmCount >= 3)
         {
-            printf("Maximum tries reached. Ending program\n");
-            break;
+            printf("2Maximum tries reached. Ending program\n");
+            return -1;
         }
         state = START;
         int bytes = write(fd, I, bufSize+6);
@@ -359,8 +364,8 @@ int llwrite(const unsigned char *buf, int bufSize)
             bytes = read(fd, buffer, 1);
             if (bytes > 0)
             {
-                printf("state: %d\n", (int)state);
-                printf("%d\n", buffer[0]);
+                //printf("state: %d\n", (int)state);
+                //printf("%d\n", buffer[0]);
                 switch (state)
                 {
                 case START:
@@ -387,7 +392,7 @@ int llwrite(const unsigned char *buf, int bufSize)
                     break;
 
                 case A_RCV:
-                    if (buffer[0] == 133)
+                    if (buffer[0] ==(C_RR ^ ((ns^1) << 7)))
                     {
                         state = C_RCV;
                     }
@@ -403,7 +408,7 @@ int llwrite(const unsigned char *buf, int bufSize)
                     break;
 
                 case C_RCV:
-                    if (buffer[0] == (133 ^ A))
+                    if (buffer[0] == (C_RR ^ ((ns^1) << 7) ^ A))
                     {
                         state = BCC_OK;
                     }
@@ -419,9 +424,10 @@ int llwrite(const unsigned char *buf, int bufSize)
                     break;
 
                 case BCC_OK:
-                    if(buf[0] == FLAG){
+                    if(buffer[0] == FLAG){
                         state = STOP_S;
                         RR_RCV = TRUE;
+                        ns ^= 1;
                     }
                     else{
                         state = START;
@@ -447,7 +453,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 // LLREAD
 ////////////////////////////////////////////////
-int llread(unsigned char *packet)
+int llread(int fd, unsigned char *packet)
 {
     state = START;
     unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
@@ -455,13 +461,12 @@ int llread(unsigned char *packet)
     int count_data = 0;
     int bytes;
 
-    int R;
-
     while (state != STOP_S)
     {
         bytes = read(fd, buf, 1);
         if (bytes > 0)
         {
+            //printf("nr: %d\n",nr);
             //printf("state: %d\n", (int)state);
             //printf("%d\n", buf[0]);
             switch (state)
@@ -490,10 +495,9 @@ int llread(unsigned char *packet)
                 break;
 
             case A_RCV:
-                if (buf[0] == 0)
+                if (buf[0] == (nr ^ 1))
                 {
                     state = C_RCV;
-                    R = 0;
                 }
                 else if (buf[0] == FLAG)
                 {
@@ -507,7 +511,7 @@ int llread(unsigned char *packet)
                 break;
 
             case C_RCV:
-                if (buf[0] == (A ^ R))
+                if (buf[0] == (A ^ (nr ^ 1)))
                 {
                     state = BCC_OK;
                 }
@@ -553,7 +557,7 @@ int llread(unsigned char *packet)
 
             }
         }
-    }  
+    } 
 
     for (int i = 0; i < count_data - 1; i++)
     {
@@ -575,7 +579,7 @@ int llread(unsigned char *packet)
 
         RR[0] = FLAG;
         RR[1] = A;
-        RR[2] = C_RR ^ ((R ^ 1) << 7);
+        RR[2] = C_RR ^ (nr << 7);
         RR[3] = RR[1] ^ RR[2];
         RR[4] = FLAG;
 
@@ -589,7 +593,7 @@ int llread(unsigned char *packet)
                 printf("%d\n", buf[0]);
             }
         }*/
-
+        nr ^= 1;
         int bytes = write(fd, RR, 5);
         printf("sent RR -> %d bytes written\n", bytes);
         sleep(1);
@@ -605,8 +609,140 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 // LLCLOSE
 ////////////////////////////////////////////////
-int llclose(int showStatistics)
+int llclose(int fd)
 {
+    unsigned char DISC[5];
+    unsigned char buf[BUF_SIZE + 1] = {0};
+    int DISC_RCV = FALSE;
+    int bytes;
+
+    DISC[0] = FLAG;
+    DISC[1] = A;
+    DISC[2] = C_DISC;
+    DISC[3] = BCC_DISC;
+    DISC[4] = FLAG;
+
+    while (!DISC_RCV)
+    {
+        if (alarmCount >= 3)
+        {
+            printf("3Maximum tries reached. Ending program\n");
+            return -1;
+        }
+        state = START;
+        bytes = write(fd, DISC, 5);
+        printf("sent DISC -> %d bytes written\n", bytes);
+        // Wait until all bytes have been written to the serial port
+        sleep(1);
+
+        alarm(3);
+        alarmEnabled = TRUE;
+
+        while (state != STOP_S)
+        {
+            bytes = read(fd, buf, 1);
+            if (bytes > 0)
+            {
+                switch (state)
+                {
+                case START:
+                    if (buf[0] == FLAG)
+                    {
+                        state = FLAG_RCV;
+                    }
+                    break;
+
+                case FLAG_RCV:
+                    if (buf[0] == A)
+                    {
+                        state = A_RCV;
+                    }
+                    else if (buf[0] == FLAG)
+                    {
+                        state = FLAG_RCV;
+                    }
+                    else
+                    {
+                        state = START;
+                    }
+
+                    break;
+
+                case A_RCV:
+                    if (buf[0] == C_DISC)
+                    {
+                        state = C_RCV;
+                    }
+                    else if (buf[0] == FLAG)
+                    {
+                        state = FLAG_RCV;
+                    }
+                    else
+                    {
+                        state = START;
+                    }
+
+                    break;
+
+                case C_RCV:
+                    if (buf[0] == (BCC_DISC))
+                    {
+                        state = BCC_OK;
+                    }
+                    else if (buf[0] == FLAG)
+                    {
+                        state = FLAG_RCV;
+                    }
+                    else
+                    {
+                        state = START;
+                    }
+
+                    break;
+
+                case BCC_OK:
+                    if(buf[0] == FLAG){
+                        state = STOP_S;
+                        DISC_RCV = TRUE;
+                    }
+                    else{
+                        state = START;
+                    }
+                    break;
+                    
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    if (DISC_RCV)
+    {
+        printf("success DISC received\n");
+    }
+
+    unsigned char UA[5];
+
+    UA[0] = FLAG;
+    UA[1] = A;
+    UA[2] = C_UA;
+    UA[3] = BCC_UA;
+    UA[4] = FLAG;
+    /*
+    while (1) {
+
+        bytes = read(fd, buf, 1);
+        if (bytes > 0) {
+            printf("%d\n", buf[0]);
+        }
+    }*/
+
+    bytes = write(fd, UA, 5);
+    printf("sent UA -> %d bytes written\n", bytes);
+
+    sleep (20);
+
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
         perror("tcsetattr");
