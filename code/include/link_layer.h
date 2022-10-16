@@ -13,6 +13,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
+#include "utils.h"
 
 typedef enum
 {

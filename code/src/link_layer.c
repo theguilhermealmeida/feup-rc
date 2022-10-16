@@ -13,6 +13,7 @@
 #define C_RR 0x05
 #define C_DISC 0x0B
 #define BCC_DISC A ^ C_DISC
+#define C_REJ 0X01
 
 volatile int STOP = FALSE;
 
@@ -335,22 +336,22 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
     unsigned char buffer[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
     int RR_RCV = FALSE;
     alarmCount = 0;
-    unsigned char BCC2 = 0;
     int buf_cnt = 4;
-    unsigned char I[bufSize + 6];
+    unsigned char I[1000] = {0};
+    unsigned char newBuff[1000] = {0};
 
     I[0] = FLAG;
     I[1] = A;
     I[2] = ns;
     I[3] = I[1] ^ I[2];
-    for (int i = 0; i < bufSize; i++)
+    createBCC(buf,newBuff,bufSize);
+    int size = byte_stuffing(newBuff,bufSize + 1);
+    for (int i = 0; i < size; i++)
     {
-        I[buf_cnt] = buf[i];
-        BCC2 ^= buf[i];
+        I[buf_cnt] = newBuff[i];
         buf_cnt++;
     }
-    I[buf_cnt] = BCC2;
-    I[buf_cnt + 1] = FLAG;
+    I[buf_cnt] = FLAG;
 
     while (!RR_RCV)
     {
@@ -360,7 +361,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             return -1;
         }
         state = START;
-        int bytes = write(fd, I, bufSize + 6);
+        int bytes = write(fd, I, buf_cnt + 2);
         printf("Sent I -> %d bytes written\n", bytes);
         // Wait until all bytes have been written to the serial port
         sleep(1);
@@ -468,7 +469,7 @@ int llread(int fd, unsigned char *packet)
     int UA_RCV = FALSE;
     alarmCount = 0;
     unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
-    unsigned char data[500] = {0};
+    unsigned char data[1000] = {0};
     int count_data = 0;
     int bytes;
 
@@ -601,21 +602,23 @@ int llread(int fd, unsigned char *packet)
         }
     }
 
+    int size = byte_destuffing(data,count_data);
+
     if (state == STOP_DATA)
     {
-        for (int i = 0; i < count_data - 1; i++)
+        for (int i = 0; i < size - 1; i++)
         {
             packet[i] = data[i];
         }
 
         unsigned char BCC2 = 0;
 
-        for (int i = 0; i < count_data - 1; i++)
+        for (int i = 0; i < size - 1; i++)
         {
             BCC2 = BCC2 ^ data[i];
         }
 
-        if (BCC2 == data[count_data - 1])
+        if (BCC2 == data[size - 1])
         {
             printf("BCC2 ok!\n");
 
@@ -645,6 +648,29 @@ int llread(int fd, unsigned char *packet)
         else
         {
             printf("BCC2 FAILED!\n");
+
+            unsigned char REJ[5];
+
+            REJ[0] = FLAG;
+            REJ[1] = A;
+            REJ[2] = C_REJ ^ (nr << 7);
+            REJ[3] = REJ[1] ^ REJ[2];
+            REJ[4] = FLAG;
+
+            /*
+            while (1)
+            {
+
+                bytes = read(fd, buf, 1);
+                if (bytes > 0)
+                {
+                    printf("%d\n", buf[0]);
+                }
+            }*/
+            nr ^= 1;
+            int bytes = write(fd, REJ, 5);
+            printf("sent REJ -> %d bytes written\n", bytes);
+            sleep(1);
         }
     }
     else
