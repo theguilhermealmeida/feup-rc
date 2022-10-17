@@ -12,6 +12,7 @@
 LinkLayer connectionParameters;
 
 int fd;
+int finish = FALSE;
 
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
@@ -35,22 +36,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     fd = llopen(connectionParameters);
 
     if (connectionParameters.role) { // if recetor
-        llread(fd,packet);
-        printf("packet :%s\n",packet);
-        memset(packet,0,1000);
-        llread(fd,packet);
-        printf("packet :%s\n",packet);
-        memset(packet,0,1000);
-        llread(fd,packet);
-        printf("packet :%s\n",packet);
-        memset(packet,0,1000);
-        llread(fd,packet);
-        printf("packet :%s\n",packet);
-        memset(packet,0,1000);
-        llread(fd,packet);
-        printf("packet :%s\n",packet);
-        llread(fd,packet);
-        
+        while (!finish){
+            llread(fd,packet);
+            printf("packet :%s\n",packet);
+            memset(packet,0,1000);
+        }  
+        printf("FINISHING PROGRAM \n");    
     }
 
     if (!connectionParameters.role) { // if emissor
@@ -59,11 +50,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         unsigned char *string3 = (unsigned char *)">@";
         unsigned char *string4 = (unsigned char *)"O tiago e mau";
         unsigned char *string5 = (unsigned char *)"O joao e feio";
-        llwrite(fd,string1,5);
-        llwrite(fd,string2,5);
-        llwrite(fd,string3,2);
-        llwrite(fd,string4,13);
-        llwrite(fd,string5,13);
+        llwrite(fd,string1,6);
+        llwrite(fd,string2,6);
+        llwrite(fd,string3,3);
+        llwrite(fd,string4,14);
+        llwrite(fd,string5,14);
         llclose(fd);
     }
 }

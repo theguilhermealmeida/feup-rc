@@ -17,15 +17,22 @@
 
 volatile int STOP = FALSE;
 
+extern int finish;
+
 typedef enum
 {
     START,
     FLAG_RCV,
     A_RCV,
     C_RCV,
+    C_RR_RCV,
+    C_REJ_RCV,
     C_DATA_RCV,
+    C_DATA_RPT_RCV,
     BCC_OK,
     BCC_DATA_OK,
+    BCC_RR_OK,
+    BCC_REJ_OK,
     DATA_RCV,
     STOP_S,
     STOP_DATA
@@ -342,10 +349,10 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
     I[0] = FLAG;
     I[1] = A;
-    I[2] = ns;
+    I[2] = ns << 6;
     I[3] = I[1] ^ I[2];
-    createBCC(buf,newBuff,bufSize);
-    int size = byte_stuffing(newBuff,bufSize + 1);
+    createBCC(buf, newBuff, bufSize);
+    int size = byte_stuffing(newBuff, bufSize + 1);
     for (int i = 0; i < size; i++)
     {
         I[buf_cnt] = newBuff[i];
@@ -403,7 +410,11 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
                 case A_RCV:
                     if (buffer[0] == (C_RR ^ ((ns ^ 1) << 7)))
                     {
-                        state = C_RCV;
+                        state = C_RR_RCV;
+                    }
+                    else if (buffer[0] == (C_REJ ^ ((ns ^ 1) << 7)))
+                    {
+                        state = C_REJ_RCV;
                     }
                     else if (buffer[0] == FLAG)
                     {
@@ -416,10 +427,10 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
                     break;
 
-                case C_RCV:
+                case C_RR_RCV:
                     if (buffer[0] == (C_RR ^ ((ns ^ 1) << 7) ^ A))
                     {
-                        state = BCC_OK;
+                        state = BCC_RR_OK;
                     }
                     else if (buffer[0] == FLAG)
                     {
@@ -432,7 +443,36 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
                     break;
 
-                case BCC_OK:
+                case C_REJ_RCV:
+                    if (buffer[0] == (C_REJ ^ ((ns ^ 1) << 7) ^ A))
+                    {
+                        state = BCC_REJ_OK;
+                    }
+                    else if (buffer[0] == FLAG)
+                    {
+                        state = FLAG_RCV;
+                    }
+                    else
+                    {
+                        state = START;
+                    }
+
+                    break;
+
+                case BCC_REJ_OK:
+                    if (buffer[0] == FLAG)
+                    {
+                        state = STOP_S;
+                        printf("insuccess REJ received\n");
+                        alarmCount++;
+                    }
+                    else
+                    {
+                        state = START;
+                    }
+                    break;
+
+                case BCC_RR_OK:
                     if (buffer[0] == FLAG)
                     {
                         state = STOP_S;
@@ -454,7 +494,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
     if (RR_RCV)
     {
-        printf("success rr received\n");
+        printf("success RR received\n");
     }
 
     return 0;
@@ -467,6 +507,7 @@ int llread(int fd, unsigned char *packet)
 {
     state = START;
     int UA_RCV = FALSE;
+    int DATA_RPT = FALSE;
     alarmCount = 0;
     unsigned char buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
     unsigned char data[1000] = {0};
@@ -507,9 +548,14 @@ int llread(int fd, unsigned char *packet)
                 break;
 
             case A_RCV:
-                if (buf[0] == (nr ^ 1))
+                if (buf[0] == ((nr ^ 1) << 6))
                 {
                     state = C_DATA_RCV;
+                }
+                else if (buf[0] == (nr << 6))
+                {
+                    printf("repetido\n");
+                    state = C_DATA_RPT_RCV;
                 }
                 else if (buf[0] == C_DISC)
                 {
@@ -527,9 +573,26 @@ int llread(int fd, unsigned char *packet)
                 break;
 
             case C_DATA_RCV:
-                if (buf[0] == (A ^ (nr ^ 1)))
+                if (buf[0] == (A ^ ((nr ^ 1) << 6)))
                 {
                     state = BCC_DATA_OK;
+                }
+                else if (buf[0] == FLAG)
+                {
+                    state = FLAG_RCV;
+                }
+                else
+                {
+                    state = START;
+                }
+
+                break;
+
+            case C_DATA_RPT_RCV:
+                if (buf[0] == (A ^ (nr << 6)))
+                {
+                    state = BCC_DATA_OK;
+                    DATA_RPT = TRUE;
                 }
                 else if (buf[0] == FLAG)
                 {
@@ -602,15 +665,10 @@ int llread(int fd, unsigned char *packet)
         }
     }
 
-    int size = byte_destuffing(data,count_data);
+    int size = byte_destuffing(data, count_data);
 
     if (state == STOP_DATA)
     {
-        for (int i = 0; i < size - 1; i++)
-        {
-            packet[i] = data[i];
-        }
-
         unsigned char BCC2 = 0;
 
         for (int i = 0; i < size - 1; i++)
@@ -624,11 +682,27 @@ int llread(int fd, unsigned char *packet)
 
             unsigned char RR[5];
 
-            RR[0] = FLAG;
-            RR[1] = A;
-            RR[2] = C_RR ^ (nr << 7);
-            RR[3] = RR[1] ^ RR[2];
-            RR[4] = FLAG;
+            if (!DATA_RPT)
+            {
+                for (int i = 0; i < size - 1; i++)
+                {
+                    packet[i] = data[i];
+                }
+                RR[0] = FLAG;
+                RR[1] = A;
+                RR[2] = C_RR ^ (nr << 7);
+                RR[3] = RR[1] ^ RR[2];
+                RR[4] = FLAG;
+                nr ^= 1;
+            }
+            else
+            {
+                RR[0] = FLAG;
+                RR[1] = A;
+                RR[2] = C_RR ^ ((nr ^ 1) << 7);
+                RR[3] = RR[1] ^ RR[2];
+                RR[4] = FLAG;
+            }
 
             /*
             while (1)
@@ -640,7 +714,7 @@ int llread(int fd, unsigned char *packet)
                     printf("%d\n", buf[0]);
                 }
             }*/
-            nr ^= 1;
+
             int bytes = write(fd, RR, 5);
             printf("sent RR -> %d bytes written\n", bytes);
             sleep(1);
@@ -649,28 +723,43 @@ int llread(int fd, unsigned char *packet)
         {
             printf("BCC2 FAILED!\n");
 
+            unsigned char RR[5];
             unsigned char REJ[5];
 
-            REJ[0] = FLAG;
-            REJ[1] = A;
-            REJ[2] = C_REJ ^ (nr << 7);
-            REJ[3] = REJ[1] ^ REJ[2];
-            REJ[4] = FLAG;
-
-            /*
-            while (1)
+            if (DATA_RPT)
             {
+                RR[0] = FLAG;
+                RR[1] = A;
+                RR[2] = C_RR ^ ((nr ^ 1) << 7);
+                RR[3] = RR[1] ^ RR[2];
+                RR[4] = FLAG;
 
-                bytes = read(fd, buf, 1);
-                if (bytes > 0)
+                int bytes = write(fd, RR, 5);
+                printf("sent RR -> %d bytes written\n", bytes);
+                sleep(1);
+            }
+            else
+            {
+                REJ[0] = FLAG;
+                REJ[1] = A;
+                REJ[2] = C_REJ ^ (nr << 7);
+                REJ[3] = REJ[1] ^ REJ[2];
+                REJ[4] = FLAG;
+
+                /*
+                while (1)
                 {
-                    printf("%d\n", buf[0]);
-                }
-            }*/
-            nr ^= 1;
-            int bytes = write(fd, REJ, 5);
-            printf("sent REJ -> %d bytes written\n", bytes);
-            sleep(1);
+
+                    bytes = read(fd, buf, 1);
+                    if (bytes > 0)
+                    {
+                        printf("%d\n", buf[0]);
+                    }
+                }*/
+                int bytes = write(fd, REJ, 5);
+                printf("sent REJ -> %d bytes written\n", bytes);
+                sleep(1);
+            }
         }
     }
     else
@@ -700,6 +789,7 @@ int llread(int fd, unsigned char *packet)
             if (alarmCount >= 3)
             {
                 printf("Maximum tries reached. Ending program\n");
+                finish = TRUE;
                 return -1;
             }
             state = START;
@@ -795,6 +885,8 @@ int llread(int fd, unsigned char *packet)
         if (UA_RCV)
         {
             printf("success ua received\n");
+
+            finish = TRUE;
 
             if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
             {

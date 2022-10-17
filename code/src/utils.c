@@ -10,6 +10,7 @@ int createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
         BCC2 ^= src[i];
     }
     newBuff[bufSize] = BCC2;
+    //newBuff[bufSize] = 0;
 
     return 0;
 }
