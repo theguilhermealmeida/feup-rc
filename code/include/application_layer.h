@@ -4,6 +4,12 @@
 #ifndef _APPLICATION_LAYER_H_
 #define _APPLICATION_LAYER_H_
 
+#include "transmitter.h"
+#include "receiver.h"
+#include "link_layer.h"
+#include <stdio.h>
+#include <string.h>
+
 // Application layer main function.
 // Arguments:
 //   serialPort: Serial port name (e.g., /dev/ttyS0).

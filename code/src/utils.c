@@ -75,3 +75,13 @@ int byte_destuffing(unsigned char *buf, int bufSize)
     memcpy(buf, newBuff, newBufSize);
     return newBufSize;
 }
+
+char * getFilename(char * path) {
+    char * filename = path, *p;
+    for (p = path; *p; p++) {
+        if (*p == '/' || *p == '\\' || *p == ':') {
+            filename = p;
+        }
+    }
+    return filename;
+}

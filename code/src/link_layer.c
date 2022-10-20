@@ -687,6 +687,7 @@ int llread(int fd, unsigned char *packet)
                 for (int i = 0; i < size - 1; i++)
                 {
                     packet[i] = data[i];
+                    printf("%d : %d\n",i,packet[i]);
                 }
                 RR[0] = FLAG;
                 RR[1] = A;
