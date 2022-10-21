@@ -25,16 +25,22 @@ typedef enum
     FLAG_RCV,
     A_RCV,
     C_RCV,
+    C_SET_RCV,
     C_RR_RCV,
     C_REJ_RCV,
+    C_DISC_RCV,
     C_DATA_RCV,
     C_DATA_RPT_RCV,
     BCC_OK,
+    BCC_SET_OK,
+    BCC_DISC_OK,
     BCC_DATA_OK,
     BCC_RR_OK,
     BCC_REJ_OK,
     DATA_RCV,
+    STOP_DISC,
     STOP_S,
+    STOP_SET,
     STOP_DATA
 } STATE;
 
@@ -514,7 +520,7 @@ int llread(int fd, unsigned char *packet)
     int count_data = 0;
     int bytes;
 
-    while (state != STOP_S && state != STOP_DATA)
+    while (state != STOP_SET && state != STOP_DISC && state != STOP_DATA)
     {
         bytes = read(fd, buf, 1);
         if (bytes > 0)
@@ -559,7 +565,11 @@ int llread(int fd, unsigned char *packet)
                 }
                 else if (buf[0] == C_DISC)
                 {
-                    state = C_RCV;
+                    state = C_DISC_RCV;
+                }
+                else if (buf[0] == C_SET)
+                {
+                    state = C_SET_RCV;
                 }
                 else if (buf[0] == FLAG)
                 {
@@ -605,10 +615,26 @@ int llread(int fd, unsigned char *packet)
 
                 break;
 
-            case C_RCV:
+            case C_DISC_RCV:
                 if (buf[0] == (BCC_DISC))
                 {
-                    state = BCC_OK;
+                    state = BCC_DISC_OK;
+                }
+                else if (buf[0] == FLAG)
+                {
+                    state = FLAG_RCV;
+                }
+                else
+                {
+                    state = START;
+                }
+
+                break;
+            
+            case C_SET_RCV:
+                if (buf[0] == (BCC_SET))
+                {
+                    state = BCC_SET_OK;
                 }
                 else if (buf[0] == FLAG)
                 {
@@ -621,10 +647,23 @@ int llread(int fd, unsigned char *packet)
 
                 break;
 
-            case BCC_OK:
+
+            case BCC_DISC_OK:
                 if (buf[0] == FLAG)
                 {
-                    state = STOP_S;
+                    state = STOP_DISC;
+                }
+                else
+                {
+                    state = START;
+                }
+
+                break;
+
+            case BCC_SET_OK:
+                if (buf[0] == FLAG)
+                {
+                    state = STOP_SET;
                 }
                 else
                 {
@@ -763,7 +802,7 @@ int llread(int fd, unsigned char *packet)
             }
         }
     }
-    else
+    else if (state == STOP_DISC)
     { // DISC received
 
         printf("DISC received\n");
@@ -897,6 +936,21 @@ int llread(int fd, unsigned char *packet)
 
             close(fd);
         }
+    }
+    else if (state == STOP_SET)
+    { // DISC received
+
+        printf("SET received\n");
+        unsigned char UA[5];
+
+        UA[0] = FLAG;
+        UA[1] = A;
+        UA[2] = C_UA;
+        UA[3] = BCC_UA;
+        UA[4] = FLAG;
+
+        bytes = write(fd, UA, 5);
+        printf("sent UA -> %d bytes written\n", bytes);
     }
 
     return 0;

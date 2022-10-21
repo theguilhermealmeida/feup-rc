@@ -37,25 +37,25 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             unsigned char packet[1000] = {0};
             llread(fd, packet);
             printf("packet :%s\n", packet);
-            readPacket(packet);
+            //readPacket(packet);
         }
         printf("FINISHING PROGRAM \n");
     }
 
     if (!connectionParameters.role)
     { // if emissor
-        transmitter(fd,filename);
+        //transmitter(fd,filename);
+        unsigned char *string1 = (unsigned char *)"a~~oz";
+        unsigned char *string2 = (unsigned char *)"a}}oz";
+        unsigned char *string3 = (unsigned char *)">@";
+        unsigned char *string4 = (unsigned char *)"O tiago e mau";
+        unsigned char *string5 = (unsigned char *)"O joao e feio";
+        llwrite(fd, string1, 6);
+        llwrite(fd, string2, 6);
+        llwrite(fd, string3, 3);
+        llwrite(fd, string4, 14);
+        llwrite(fd, string5, 14);
         llclose(fd);
-        // unsigned char *string1 = (unsigned char *)"a~~oz";
-        // unsigned char *string2 = (unsigned char *)"a}}oz";
-        // unsigned char *string3 = (unsigned char *)">@";
-        // unsigned char *string4 = (unsigned char *)"O tiago e mau";
-        // unsigned char *string5 = (unsigned char *)"O joao e feio";
-        // llwrite(fd, string1, 6);
-        // llwrite(fd, string2, 6);
-        // llwrite(fd, string3, 3);
-        // llwrite(fd, string4, 14);
-        // llwrite(fd, string5, 14);
 
     }
 }
