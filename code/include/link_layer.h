@@ -13,7 +13,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
-#include "utils.h"
+#include "state_machine.h"
 
 typedef enum
 {
@@ -30,7 +30,6 @@ typedef struct
     int timeout;
 } LinkLayer;
 
-
 #define BAUDRATE B38400
 
 // SIZE of maximum acceptable payload.
@@ -40,8 +39,6 @@ typedef struct
 // MISC
 #define FALSE 0
 #define TRUE 1
-
-
 
 // Open a connection using the "port" parameters defined in struct linkLayer.
 // Return "1" on success or "-1" on error.

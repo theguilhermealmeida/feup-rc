@@ -1,7 +1,7 @@
 #include "utils.h"
 #include <string.h>
 
-int createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
+void createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
 {
     unsigned char BCC2 = 0;
     for (int i = 0; i < bufSize; i++)
@@ -12,7 +12,6 @@ int createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
     newBuff[bufSize] = BCC2;
     //newBuff[bufSize] = 0;
 
-    return 0;
 }
 
 int byte_stuffing(unsigned char *buf, int bufSize)
@@ -59,7 +58,7 @@ int byte_destuffing(unsigned char *buf, int bufSize)
                 newBufSize++;
                 i++;
             }
-            else if (buf[i+1] == 0x5D)
+            else if (buf[i + 1] == 0x5D)
             {
                 newBuff[newBufSize] = 0X7D;
                 newBufSize++;
@@ -76,12 +75,49 @@ int byte_destuffing(unsigned char *buf, int bufSize)
     return newBufSize;
 }
 
-char * getFilename(char * path) {
-    char * filename = path, *p;
-    for (p = path; *p; p++) {
-        if (*p == '/' || *p == '\\' || *p == ':') {
+char *getFilename(char *path)
+{
+    char *filename = path, *p;
+    for (p = path; *p; p++)
+    {
+        if (*p == '/' || *p == '\\' || *p == ':')
+        {
             filename = p;
         }
     }
     return filename;
+}
+
+int sendFrame(int fd,unsigned char C, unsigned char BCC)
+{
+    unsigned char FRAME[5];
+
+    FRAME[0] = FLAG;
+    FRAME[1] = A;
+    FRAME[2] = C;
+    FRAME[3] = BCC;
+    FRAME[4] = FLAG;
+
+    return write(fd, FRAME, 5);
+}
+
+int sendInformationFrame(int fd, unsigned char C, unsigned char BCC,const unsigned char *buf, int bufSize){
+
+    unsigned char FRAME[1000];
+    int buf_cnt = 4;
+
+    FRAME[0] = FLAG;
+    FRAME[1] = A;
+    FRAME[2] = C;
+    FRAME[3] = BCC;
+
+    for (int i = 0; i < bufSize; i++)
+    {
+        FRAME[buf_cnt] = buf[i];
+        buf_cnt++;
+    }
+
+    FRAME[buf_cnt] = FLAG;
+
+    return write(fd, FRAME, buf_cnt + 2);
 }
