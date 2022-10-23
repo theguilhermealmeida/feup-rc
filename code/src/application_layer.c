@@ -43,7 +43,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         while (!finish)
         {
-		receiver(fd);
+		      receiver(fd);
         }
 
 	printStatistics(0);
@@ -56,6 +56,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     if (!connectionParameters.role)
     { // if emissor
+
 	gettimeofday(&t_start , NULL);
 
         transmitter(fd,filename);
