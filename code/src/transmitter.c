@@ -1,4 +1,6 @@
 #include "transmitter.h"
+#include "utils.h"
+
 
 int transmitter(int fd, const char *filename)
 {
@@ -17,14 +19,19 @@ int transmitter(int fd, const char *filename)
         printf("Error opening file.");
     }
 
+
     sendControlPacket(fd, 2, file_stat.st_size, filename);
 
     unsigned char buffer[500];
     int bytes;
     int sequenceNr = 0;
+    float writtenBytes = 0;
 
     while ((bytes = read(file_fd, buffer, 496)) > 0){
         sendDataPacket(fd,sequenceNr,bytes,buffer);
+	
+	writtenBytes += bytes;
+	printProgressBar(writtenBytes, file_stat.st_size);
         sequenceNr++;
     }
 
@@ -45,10 +52,10 @@ int sendControlPacket(int fd, unsigned char ctrl_field, unsigned file_size, cons
     unsigned L2 = strlen(filename);
     unsigned packet_size = 5 + L1 + L2;
 
-    printf("l1 : %d\n", L1);
-    printf("file_size : %d\n", file_size);
-    printf("l2 : %d\n", L2);
-    printf("file_name : %s\n", filename);
+    // printf("l1 : %d\n", L1);
+    // printf("file_size : %d\n", file_size);
+    // printf("l2 : %d\n", L2);
+    // printf("file_name : %s\n", filename);
 
     unsigned char packet[packet_size];
     packet[0] = ctrl_field;
@@ -70,9 +77,9 @@ int sendDataPacket(int fd, int sequenceNr , int size, unsigned char * buffer){
     packet[3] = size % 256;
     memcpy(&packet[4], buffer, size);
 
-    for (int i = 0; i < size + 4 ; i++){
-        printf("%d : %d \n",i,packet[i]);
-    }
+//    for (int i = 0; i < size + 4 ; i++){
+//        printf("%d : %d \n",i,packet[i]);
+//    }
     
     return llwrite(fd,packet,size + 4);
 }

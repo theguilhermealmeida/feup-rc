@@ -114,8 +114,10 @@ int llopen(LinkLayer connectionParameters)
                 return -1;
             }
             state = START;
+
             int bytes = sendFrame(fd, C_SET, BCC_SET);
             printf("Sent SET -> %d bytes written\n", bytes);
+
             // Wait until all bytes have been written to the serial port
             sleep(1);
 
@@ -164,6 +166,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         state = START;
         int bytes = sendInformationFrame(fd,ns << 6,A ^(ns << 6),newBuff,size);
         printf("Sent I -> %d bytes written\n", bytes);
+
         sleep(1);
 
         alarm(3);
@@ -188,6 +191,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         {
             printf("Success REJ received\n");
         }
+
     }
 
     return 0;
@@ -297,6 +301,7 @@ int llread(int fd, unsigned char *packet)
             int bytes = sendFrame(fd, C_REJ ^ (nr << 7), A ^ (C_REJ ^ (nr << 7)));
             printf("sent REJ -> %d bytes written\n", bytes);
             sleep(1);
+
         }
     }
     else if (state == STOP_DATA_RPT)
@@ -322,6 +327,7 @@ int llread(int fd, unsigned char *packet)
             int bytes = sendFrame(fd, C_RR ^ ((nr ^ 1) << 7), A ^ (C_RR ^ ((nr ^ 1) << 7)));
             printf("sent RR -> %d bytes written\n", bytes);
             sleep(1);
+
         }
     }
 
@@ -347,8 +353,10 @@ int llclose(int fd)
             return -1;
         }
         state = START;
+
         bytes = sendFrame(fd, C_DISC, BCC_DISC);
         printf("Sent DISC -> %d bytes written\n", bytes);
+
         // Wait until all bytes have been written to the serial port
         sleep(1);
 
@@ -372,6 +380,9 @@ int llclose(int fd)
             printf("Sent UA -> %d bytes written\n", bytes);
             sleep(1);
         }
+
     }
+
     return 0;
 }
+

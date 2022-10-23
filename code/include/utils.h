@@ -16,6 +16,7 @@
 #define BCC_DISC A ^ C_DISC
 #define C_REJ 0X01
 
+
 int byte_stuffing(unsigned char *buf, int bufSize);
 
 int byte_destuffing(unsigned char *buf, int bufSize);
@@ -25,5 +26,12 @@ void createBCC(const unsigned char *src, unsigned char *newBuff,int bufSize);
 int sendFrame(int fd, unsigned char C, unsigned char BCC);
 
 int sendInformationFrame(int fd, unsigned char C, unsigned char BCC,const unsigned char *buf, int bufSize);
+
+int checkFileSize(int filesize, const char* filename);
+
+void printProgressBar(float current, float total);
+
+void printStatistics();
+
 
 #endif // _UTIL_H_
