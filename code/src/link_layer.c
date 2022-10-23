@@ -239,7 +239,7 @@ int llopen(LinkLayer connectionParameters)
             }
             state = START;
             int bytes = write(fd, SET, 5);
-            printf("sent SET -> %d bytes written\n", bytes);
+            // printf("sent SET -> %d bytes written\n", bytes);
             // Wait until all bytes have been written to the serial port
             sleep(1);
 
@@ -369,7 +369,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         }
         state = START;
         int bytes = write(fd, I, buf_cnt + 2);
-        printf("Sent I -> %d bytes written\n", bytes);
+        // printf("Sent I -> %d bytes written\n", bytes);
         // Wait until all bytes have been written to the serial port
         sleep(1);
 
@@ -494,7 +494,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
     if (RR_RCV)
     {
-        printf("success RR received\n");
+        // printf("success RR received\n");
     }
 
     return 0;
@@ -716,8 +716,8 @@ int llread(int fd, unsigned char *packet)
                 }
             }*/
 
-            int bytes = write(fd, RR, 5);
-            printf("sent RR -> %d bytes written\n", bytes);
+             bytes = write(fd, RR, 5);
+            // printf("sent RR -> %d bytes written\n", bytes);
             sleep(1);
         }
         else
@@ -757,8 +757,8 @@ int llread(int fd, unsigned char *packet)
                         printf("%d\n", buf[0]);
                     }
                 }*/
-                int bytes = write(fd, REJ, 5);
-                printf("sent REJ -> %d bytes written\n", bytes);
+                bytes = write(fd, REJ, 5);
+                // printf("sent REJ -> %d bytes written\n", bytes);
                 sleep(1);
             }
         }
@@ -794,8 +794,8 @@ int llread(int fd, unsigned char *packet)
                 return -1;
             }
             state = START;
-            int bytes = write(fd, DISC, 5);
-            printf("sent DISC -> %d bytes written\n", bytes);
+            bytes = write(fd, DISC, 5);
+            // printf("sent DISC -> %d bytes written\n", bytes);
             // Wait until all bytes have been written to the serial port
             sleep(1);
 
@@ -885,7 +885,7 @@ int llread(int fd, unsigned char *packet)
 
         if (UA_RCV)
         {
-            printf("success ua received\n");
+            // printf("success ua received\n");
 
             finish = TRUE;
 
@@ -928,7 +928,7 @@ int llclose(int fd)
         }
         state = START;
         bytes = write(fd, DISC, 5);
-        printf("sent DISC -> %d bytes written\n", bytes);
+        // printf("sent DISC -> %d bytes written\n", bytes);
         // Wait until all bytes have been written to the serial port
         sleep(1);
 
@@ -1018,7 +1018,7 @@ int llclose(int fd)
 
     if (DISC_RCV)
     {
-        printf("success DISC received\n");
+        // printf("success DISC received\n");
     }
 
     unsigned char UA[5];
@@ -1038,7 +1038,8 @@ int llclose(int fd)
     }*/
 
     bytes = write(fd, UA, 5);
-    printf("sent UA -> %d bytes written\n", bytes);
+    // printf("sent UA -> %d bytes written\n", bytes);
 
     return 0;
 }
+

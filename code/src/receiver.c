@@ -1,12 +1,10 @@
 #include "receiver.h"
+#include "utils.h"
 
 int receiver(int fd){
-    printf("AQUI1");
     unsigned char packet[1000] = {0};
     llread(fd, packet);
-    printf("AQUI2");
     readPacket(packet);
-    printf("AQUI3");
     return 0;
 }
 
@@ -27,6 +25,12 @@ int readPacket(unsigned char * packet){
             printf("Error closing file!");
             return -1;
         }
+	extern char* FileName;
+	if (checkFileSize(filesize, FileName) != 0) {
+            printf("File size different from expected\n");
+            return -1;	    
+	}
+	else printf("File size expected!\n");
     }
     else if (packet[0] == 1){
         if (checkSequenceNr(packet[1]) != 0) {
@@ -39,6 +43,9 @@ int readPacket(unsigned char * packet){
             return -1;
         }
     }
+
+
+
     return 0;
 }
 
@@ -63,8 +70,10 @@ int readControlPacket(unsigned char * packet, char* filename, int* filesize){
         printf("filename : %s\n",filename);
     }
     printf("acabou control\n");
+
     return 0;
 }
+
 
 int checkSequenceNr(int number) {
     static int sequenceNr = 0;
