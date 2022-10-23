@@ -31,7 +31,7 @@ int checkFileSize(int filesize, const char* filename);
 
 void printProgressBar(float current, float total);
 
-void printStatistics();
+void printStatistics(int RR , int REJ);
 
 
 #endif // _UTIL_H_

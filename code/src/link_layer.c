@@ -16,6 +16,8 @@ int alarmEnabled = FALSE;
 int alarmCount = 0;
 int ns = 0;
 int nr = 1;
+int nrRR = 0;
+int nrREJ = 0;
 
 unsigned char nodata[0];
 
@@ -164,7 +166,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             return -1;
         }
         state = START;
-        int bytes = sendInformationFrame(fd,ns << 6,A ^(ns << 6),newBuff,size);
+        int bytes = sendInformationFrame(fd, ns << 6, A ^ (ns << 6), newBuff, size);
         printf("Sent I -> %d bytes written\n", bytes);
 
         sleep(1);
@@ -185,13 +187,14 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         {
             RR_RCV = TRUE;
             ns ^= 1;
+            nrRR++;
             printf("Success RR received\n");
         }
         else if (state == STOP_REJ)
         {
+            nrREJ++;
             printf("Success REJ received\n");
         }
-
     }
 
     return 0;
@@ -301,7 +304,6 @@ int llread(int fd, unsigned char *packet)
             int bytes = sendFrame(fd, C_REJ ^ (nr << 7), A ^ (C_REJ ^ (nr << 7)));
             printf("sent REJ -> %d bytes written\n", bytes);
             sleep(1);
-
         }
     }
     else if (state == STOP_DATA_RPT)
@@ -327,7 +329,6 @@ int llread(int fd, unsigned char *packet)
             int bytes = sendFrame(fd, C_RR ^ ((nr ^ 1) << 7), A ^ (C_RR ^ ((nr ^ 1) << 7)));
             printf("sent RR -> %d bytes written\n", bytes);
             sleep(1);
-
         }
     }
 
@@ -380,9 +381,7 @@ int llclose(int fd)
             printf("Sent UA -> %d bytes written\n", bytes);
             sleep(1);
         }
-
     }
 
     return 0;
 }
-

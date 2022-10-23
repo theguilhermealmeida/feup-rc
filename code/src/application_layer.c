@@ -10,9 +10,10 @@ LinkLayer connectionParameters;
 
 int fd;
 int finish = FALSE;
-char *FileName; 
+char *FileName;
+extern int nrRR;
+extern int nrREJ;
 
-void printStatistics(int role);
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
                       int nTries, int timeout, const char *filename)
@@ -39,27 +40,27 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     if (connectionParameters.role)
     { // if recetor
-	gettimeofday(&r_start , NULL);
+        gettimeofday(&r_start, NULL);
 
         while (!finish)
         {
-		      receiver(fd);
+            receiver(fd);
         }
 
-	printStatistics(0);
+        printStatistics(nrRR,nrREJ);
         gettimeofday(&r_end, NULL);
         double time_spent = (r_end.tv_sec - r_start.tv_sec) * 1e6;
-        time_spent = (time_spent +(r_end.tv_usec - r_start.tv_usec)) * 1e-6;
-	printf("Time spent: %f seconds\n", time_spent);
+        time_spent = (time_spent + (r_end.tv_usec - r_start.tv_usec)) * 1e-6;
+        printf("Time spent: %f seconds\n", time_spent);
         printf("\nFINISHING PROGRAM \n");
     }
 
     if (!connectionParameters.role)
     { // if emissor
 
-	gettimeofday(&t_start , NULL);
+        gettimeofday(&t_start, NULL);
 
-        transmitter(fd,filename);
+        transmitter(fd, filename);
         llclose(fd);
 
         // unsigned char *string1 = (unsigned char *)"a~~oz";
@@ -73,11 +74,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         // llwrite(fd, string4, 14);
         // llwrite(fd, string5, 14);
 
-	printStatistics(1);
         gettimeofday(&t_end, NULL);
         double time_spent = (t_end.tv_sec - t_start.tv_sec) * 1e6;
-        time_spent = (time_spent +(t_end.tv_usec - t_start.tv_usec)) * 1e-6;
-	printf("Time spent: %f seconds\n", time_spent);
+        time_spent = (time_spent + (t_end.tv_usec - t_start.tv_usec)) * 1e-6;
+        printf("Time spent: %f seconds\n", time_spent);
     }
 }
-
