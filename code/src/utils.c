@@ -143,6 +143,7 @@ void printProgressBar(float current, float total)
 
     float percentage = 100.0 * current / total;
 
+    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     printf("\n%.2f%% [", percentage);
 
     int len = 50;
@@ -151,12 +152,20 @@ void printProgressBar(float current, float total)
         i <= pos ? printf("#") : printf(" ");
 
     printf("]\n");
-    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 }
 
-void printStatistics(int RR, int REJ)
+void printStatistics(int role, int RR, int REJ)
 {
-    printf("\nSTATISTICS\n\n");
-    printf("Number of  RR received: %d\n", RR);
-    printf("Number of  REJ received: %d\n", REJ);
+    if (role)
+    {
+        printf("\nSTATISTICS\n\n");
+        printf("Number of  RR received: %d\n", RR);
+        printf("Number of  REJ received: %d\n", REJ);
+    }
+    else
+    {
+        printf("\nSTATISTICS\n\n");
+        printf("Number of  RR sent: %d\n", RR);
+        printf("Number of  REJ sent: %d\n", REJ);
+    }
 }

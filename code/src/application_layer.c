@@ -11,8 +11,6 @@ LinkLayer connectionParameters;
 int fd;
 int finish = FALSE;
 char *FileName;
-extern int nrRR;
-extern int nrREJ;
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
@@ -47,7 +45,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             receiver(fd);
         }
 
-        printStatistics(nrRR,nrREJ);
         gettimeofday(&r_end, NULL);
         double time_spent = (r_end.tv_sec - r_start.tv_sec) * 1e6;
         time_spent = (time_spent + (r_end.tv_usec - r_start.tv_usec)) * 1e-6;
