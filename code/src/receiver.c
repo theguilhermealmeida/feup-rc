@@ -11,6 +11,7 @@ int receiver(int fd){
 int readPacket(unsigned char * packet){
     static int newFile;
     static int filesize = 0;
+    int currentSize = 0;
     char filename[30];
 
     if (packet[0] == 2){
@@ -25,8 +26,7 @@ int readPacket(unsigned char * packet){
             printf("Error closing file!");
             return -1;
         }
-	extern char* FileName;
-	if (checkFileSize(filesize, FileName) != 0) {
+	if (checkFileSize(filesize, filename) != 0) {
             printf("File size different from expected\n");
             return -1;	    
 	}
@@ -38,6 +38,8 @@ int readPacket(unsigned char * packet){
             return -1;
         }
         int datasize = packet[3] + 256 * packet[2];
+	currentSize += datasize;
+	printProgressBar(currentSize, filesize);
         if (write(newFile, &packet[4], datasize) < 0) {
             printf("Error writing to file!");
             return -1;
@@ -50,14 +52,12 @@ int readPacket(unsigned char * packet){
 }
 
 int readControlPacket(unsigned char * packet, char* filename, int* filesize){
-    printf("control\n");
     unsigned L1 = packet[2];
     if(packet[1] == 0){
         for(int i = 0 ; i < L1;i++){
             *filesize |= (packet[3+i] << (i*8));
         }
     }
-    printf("leu filesize : %d\n",*filesize);
     if(packet[L1 + 3] == 1){
         unsigned L2 = packet[L1 + 4];
         char name[L2 + 1];
@@ -67,9 +67,7 @@ int readControlPacket(unsigned char * packet, char* filename, int* filesize){
         name[L2] = '\0';
         name[0] = 'A';
         strcpy(filename, name);
-        printf("filename : %s\n",filename);
     }
-    printf("acabou control\n");
 
     return 0;
 }
