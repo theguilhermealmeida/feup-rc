@@ -105,7 +105,7 @@ int sendFrame(int fd, unsigned char C, unsigned char BCC)
 int sendInformationFrame(int fd, unsigned char C, unsigned char BCC, const unsigned char *buf, int bufSize)
 {
 
-    unsigned char FRAME[1000];
+    unsigned char FRAME[PACKET_SIZE * 2];
     int buf_cnt = 4;
 
     FRAME[0] = FLAG;

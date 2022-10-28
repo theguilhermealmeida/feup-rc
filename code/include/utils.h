@@ -5,6 +5,8 @@
 
 #include <unistd.h>
 
+#define PACKET_SIZE 2500
+
 #define FLAG 0x7E
 #define A 0x03
 #define C_SET 0x03

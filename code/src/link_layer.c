@@ -2,7 +2,6 @@
 
 #include "link_layer.h"
 
-#define BUF_SIZE 1
 #define NO_DATA nodata
 #define NO_COUNT 0
 
@@ -25,6 +24,10 @@ unsigned char nodata[0];
 
 struct termios oldtio;
 struct termios newtio;
+
+int baudRate;
+int nTries;
+int timeout;
 
 // Alarm function handler
 void alarmHandler(int signal)
@@ -64,10 +67,14 @@ int llopen(LinkLayer connectionParameters)
         exit(-1);
     }
 
+    timeout = connectionParameters.timeout;
+    baudRate = connectionParameters.baudRate;
+    nTries = connectionParameters.nRetransmissions;
+
     // Clear struct for new port settings
     memset(&newtio, 0, sizeof(newtio));
 
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_cflag = baudRate | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
 
@@ -84,11 +91,10 @@ int llopen(LinkLayer connectionParameters)
     }
     printf("New termios structure set\n");
 
-    // utilizar resto dos parametros do LinkLayer
 
     if (connectionParameters.role) // if recetor
     {
-        unsigned char buf[BUF_SIZE] = {0};
+        unsigned char buf[1] = {0};
 
         int bytes;
         while (state != STOP_ALARM && state != STOP_SET)
@@ -101,18 +107,18 @@ int llopen(LinkLayer connectionParameters)
             }
         }
 
-        //printf("Success SET received\n");
+        printf("Success SET received\n");
         bytes = sendFrame(fd, C_UA, BCC_UA);
-        //printf("Sent UA -> %d bytes written\n", bytes);
+        printf("Sent UA -> %d bytes written\n", bytes);
     }
 
     if (!connectionParameters.role) // if emissor
     {
-        unsigned char buf[BUF_SIZE] = {0};
+        unsigned char buf[1] = {0};
 
         while (!UA_RCV)
         {
-            if (alarmCount >= 3)
+            if (alarmCount >= nTries)
             {
                 printf("Maximum tries reached.Ending program\n");
                 return -1;
@@ -120,12 +126,12 @@ int llopen(LinkLayer connectionParameters)
             state = START;
 
             int bytes = sendFrame(fd, C_SET, BCC_SET);
-            //printf("Sent SET -> %d bytes written\n", bytes);
+            printf("Sent SET -> %d bytes written\n", bytes);
 
             // Wait until all bytes have been written to the serial port
             sleep(1);
 
-            alarm(3);
+            alarm(timeout);
             alarmEnabled = TRUE;
 
             while (state != STOP_ALARM && state != STOP_UA)
@@ -140,7 +146,7 @@ int llopen(LinkLayer connectionParameters)
             if (state == STOP_UA)
             {
                 UA_RCV = TRUE;
-                //printf("Success UA received\n");
+                printf("Success UA received\n");
             }
         }
     }
@@ -152,28 +158,30 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
-    unsigned char buffer[BUF_SIZE] = {0}; // +1: Save space for the final '\0' char
+    unsigned char buffer[1] = {0}; // +1: Save space for the final '\0' char
     int RR_RCV = FALSE;
     alarmCount = 0;
-    unsigned char newBuff[1000] = {0};
+    unsigned char newBuff[PACKET_SIZE * 2] = {0};
 
     createBCC(buf, newBuff, bufSize);
     int size = byte_stuffing(newBuff, bufSize + 1);
 
+
     while (!RR_RCV)
     {
-        if (alarmCount >= 3)
+        if (alarmCount >= nTries)
         {
             printf("Maximum tries reached. Ending program\n");
             return -1;
         }
         state = START;
+        printf("size: %d\n",size);
         int bytes = sendInformationFrame(fd, ns << 6, A ^ (ns << 6), newBuff, size);
-        //printf("Sent I -> %d bytes written\n", bytes);
+        printf("Sent I -> %d bytes written\n", bytes);
 
         sleep(1);
 
-        alarm(3);
+        alarm(timeout);
         alarmEnabled = TRUE;
 
         while (state != STOP_ALARM && state != STOP_RR && state != STOP_REJ)
@@ -190,12 +198,12 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             RR_RCV = TRUE;
             ns ^= 1;
             RRreceived++;
-            //printf("Success RR received\n");
+            printf("Success RR received\n");
         }
         else if (state == STOP_REJ)
         {
             REJreceived++;
-            //printf("Success REJ received\n");
+            printf("Success REJ received\n");
         }
     }
 
@@ -210,8 +218,8 @@ int llread(int fd, unsigned char *packet)
     state = START;
     int UA_RCV = FALSE;
     alarmCount = 0;
-    unsigned char buf[BUF_SIZE] = {0};
-    unsigned char data[1000] = {0};
+    unsigned char buf[1] = {0};
+    unsigned char data[PACKET_SIZE * 2] = {0};
     int count_data = 0;
     int bytes;
 
@@ -228,17 +236,17 @@ int llread(int fd, unsigned char *packet)
 
     if (state == STOP_SET)
     {
-        //printf("Success SET received\n");
+        printf("Success SET received\n");
         bytes = sendFrame(fd, C_UA, BCC_UA);
-        //printf("Sent UA -> %d bytes written\n", bytes);
+        printf("Sent UA -> %d bytes written\n", bytes);
     }
     else if (state == STOP_DISC)
     {
-        //printf("Success DISC received\n");
+        printf("Success DISC received\n");
 
         while (!UA_RCV)
         {
-            if (alarmCount >= 3)
+            if (alarmCount >= nTries)
             {
                 printf("Maximum tries reached. Ending program\n");
                 finish = TRUE;
@@ -246,10 +254,10 @@ int llread(int fd, unsigned char *packet)
             }
             state = START;
             int bytes = sendFrame(fd, C_DISC, BCC_DISC);
-            //printf("Sent DISC -> %d bytes written\n", bytes);
+            printf("Sent DISC -> %d bytes written\n", bytes);
             sleep(1);
 
-            alarm(3);
+            alarm(timeout);
             alarmEnabled = TRUE;
 
             while (state != STOP_ALARM && state != STOP_UA)
@@ -264,7 +272,7 @@ int llread(int fd, unsigned char *packet)
             if (state == STOP_UA)
             {
                 UA_RCV = TRUE;
-                //printf("Success UA received\n");
+                printf("Success UA received\n");
                 finish = TRUE;
 
                 if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
@@ -281,7 +289,7 @@ int llread(int fd, unsigned char *packet)
     }
     else if (state == STOP_DATA)
     {
-        //printf("Success DATA received\n");
+        printf("Success DATA received\n");
         unsigned char BCC2 = 0;
 
         for (int i = 0; i < size - 1; i++)
@@ -291,7 +299,7 @@ int llread(int fd, unsigned char *packet)
 
         if (BCC2 == data[size - 1])
         {
-            //printf("BCC2 ok!\n");
+            printf("BCC2 ok!\n");
             for (int i = 0; i < size - 1; i++)
             {
                 packet[i] = data[i];
@@ -299,21 +307,21 @@ int llread(int fd, unsigned char *packet)
             int bytes = sendFrame(fd, C_RR ^ (nr << 7), A ^ (C_RR ^ (nr << 7)));
             nr ^= 1;
             RRsent++;
-            //printf("sent RR -> %d bytes written\n", bytes);
+            printf("sent RR -> %d bytes written\n", bytes);
             sleep(1);
         }
         else
         {
-            //printf("BCC2 FAILED!\n");
+            printf("BCC2 FAILED!\n");
             int bytes = sendFrame(fd, C_REJ ^ (nr << 7), A ^ (C_REJ ^ (nr << 7)));
             REJsent++;
-            //printf("sent REJ -> %d bytes written\n", bytes);
+            printf("sent REJ -> %d bytes written\n", bytes);
             sleep(1);
         }
     }
     else if (state == STOP_DATA_RPT)
     {
-        //printf("Success DATA_RPT received\n");
+        printf("Success DATA_RPT received\n");
         unsigned char BCC2 = 0;
 
         for (int i = 0; i < size - 1; i++)
@@ -323,17 +331,17 @@ int llread(int fd, unsigned char *packet)
 
         if (BCC2 == data[size - 1])
         {
-            //printf("BCC2 ok!\n");
+            printf("BCC2 ok!\n");
             int bytes = sendFrame(fd, C_RR ^ ((nr ^ 1) << 7), A ^ (C_RR ^ ((nr ^ 1) << 7)));
-            //printf("sent RR -> %d bytes written\n", bytes);
+            printf("sent RR -> %d bytes written\n", bytes);
             RRsent++;
             sleep(1);
         }
         else
         {
-            //printf("BCC2 FAILED!\n");
+            printf("BCC2 FAILED!\n");
             int bytes = sendFrame(fd, C_RR ^ ((nr ^ 1) << 7), A ^ (C_RR ^ ((nr ^ 1) << 7)));
-            //printf("sent RR -> %d bytes written\n", bytes);
+            printf("sent RR -> %d bytes written\n", bytes);
             RRsent++;
             sleep(1);
         }
@@ -347,7 +355,7 @@ int llread(int fd, unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int fd)
 {
-    unsigned char buf[BUF_SIZE] = {0};
+    unsigned char buf[1] = {0};
     alarmCount = 0;
     int DISC_RCV = FALSE;
     int bytes;
@@ -355,7 +363,7 @@ int llclose(int fd)
 
     while (!DISC_RCV)
     {
-        if (alarmCount >= 3)
+        if (alarmCount >= nTries)
         {
             printf("Maximum tries reached. Ending program\n");
             return -1;
@@ -363,12 +371,12 @@ int llclose(int fd)
         state = START;
 
         bytes = sendFrame(fd, C_DISC, BCC_DISC);
-        //printf("Sent DISC -> %d bytes written\n", bytes);
+        printf("Sent DISC -> %d bytes written\n", bytes);
 
         // Wait until all bytes have been written to the serial port
         sleep(1);
 
-        alarm(3);
+        alarm(timeout);
         alarmEnabled = TRUE;
 
         while (state != STOP_ALARM && state != STOP_DISC)
@@ -382,10 +390,10 @@ int llclose(int fd)
 
         if (state == STOP_DISC)
         {
-            //printf("success DISC received\n");
+            printf("success DISC received\n");
             DISC_RCV = TRUE;
             int bytes = sendFrame(fd, C_UA, BCC_UA);
-            //printf("Sent UA -> %d bytes written\n", bytes);
+            printf("Sent UA -> %d bytes written\n", bytes);
             sleep(1);
         }
     }

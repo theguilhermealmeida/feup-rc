@@ -22,16 +22,16 @@ int transmitter(int fd, const char *filename)
 
     sendControlPacket(fd, 2, file_stat.st_size, filename);
 
-    unsigned char buffer[500];
+    unsigned char buffer[PACKET_SIZE];
     int bytes;
     int sequenceNr = 0;
     float writtenBytes = 0;
 
-    while ((bytes = read(file_fd, buffer, 496)) > 0){
+    while ((bytes = read(file_fd, buffer, PACKET_SIZE-4)) > 0){
         sendDataPacket(fd,sequenceNr,bytes,buffer);
 	
 	writtenBytes += bytes;
-	printProgressBar(writtenBytes, file_stat.st_size);
+	//printProgressBar(writtenBytes, file_stat.st_size);
         sequenceNr++;
     }
 
@@ -39,7 +39,7 @@ int transmitter(int fd, const char *filename)
 
     if (close(file_fd) < 0)
     {
-        printf("Error closing file.");
+        printf("Error closing file. ");
         return -1;
     }
 

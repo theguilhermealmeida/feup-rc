@@ -3,7 +3,7 @@
 
 int receiver(int fd)
 {
-    unsigned char packet[1000] = {0};
+    unsigned char packet[PACKET_SIZE] = {0};
     llread(fd, packet);
     readPacket(packet);
     return 0;
@@ -50,7 +50,7 @@ int readPacket(unsigned char *packet)
         }
         int datasize = packet[3] + 256 * packet[2];
         currentsize += datasize;
-        printProgressBar(currentsize,filesize);
+        //printProgressBar(currentsize,filesize);
         if (write(newFile, &packet[4], datasize) < 0)
         {
             printf("Error writing to file!");

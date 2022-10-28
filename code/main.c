@@ -34,12 +34,12 @@ int main(int argc, char *argv[])
            "  - Filename: %s\n",
            serialPort,
            role,
-           BAUDRATE,
+           B38400,
            N_TRIES,
            TIMEOUT,
            filename);
 
-    applicationLayer(serialPort, role, BAUDRATE, N_TRIES, TIMEOUT, filename);
+    applicationLayer(serialPort, role, B38400, N_TRIES, TIMEOUT, filename);
 
     return 0;
 }
