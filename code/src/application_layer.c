@@ -17,6 +17,22 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 
 {
+    printf("Starting link-layer protocol application\n"
+		    " - Serial port: %s\n"
+		    " - Role:  %s\n"
+		    " - Baudrate: %d\n"
+		    " - Number of tries: %d\n"
+		    " - Timeout: %d\n"
+		    " - Filename: %s\n",
+		    serialPort, 
+		    role,
+		    baudRate,
+		    nTries,
+		    timeout,
+		    filename);
+		    
+    sleep(2);
+
     struct timeval r_start, t_start, r_end, t_end;
     FileName = malloc(sizeof(filename));
 
