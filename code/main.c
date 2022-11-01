@@ -77,34 +77,6 @@ int main(int argc, char *argv[])
     }
 		 
 
-	/*
-    if (argc < 4)
-    {
-        printf("Usage: %s /dev/ttySxx tx|rx filename\n", argv[0]);
-        exit(1);
-    }
-
-    const char *serialPort = argv[1];
-    const char *role = argv[2];
-    const char *filename = argv[3];
-
-    printf("Starting link-layer protocol application\n"
-           "  - Serial port: %s\n"
-           "  - Role: %s\n"
-           "  - Baudrate: %d\n"
-           "  - Number of tries: %d\n"
-           "  - Timeout: %d\n"
-           "  - Filename: %s\n",
-           serialPort,
-           role,
-           BAUD_RATE,
-           N_TRIES,
-           TIMEOUT,
-           filename);
-
-    applicationLayer(serialPort, role, BAUD_RATE, N_TRIES, TIMEOUT, filename);
-    */
-
     return 0;
 }
 
