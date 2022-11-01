@@ -14,7 +14,6 @@ void createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
         BCC2 ^= src[i];
     }
     newBuff[bufSize] = BCC2;
-    // newBuff[bufSize] = 0;
 }
 
 int byte_stuffing(unsigned char *buf, int bufSize)
@@ -172,51 +171,6 @@ void printStatistics(int role, int RR, int REJ)
     }
 }
 
-/*
-void menu()
-{
-    printf("#################\n");   
-    printf("       MENU      \n");
-    printf("#################\n\n");   
-
-
-    char* port;
-    int role;
-    int ntries;
-    int timeout;
-    char* filename;
-
-    printf("Serial port (/dev/ttySxx): ");
-    port = getInputString();
-
-
-    printf("\nWhat's your role? ('0' for receiver, '1' for trasmitter): ");
-    role = getInputInt(0, 1); 
-
-    printf("\nNumber of tries before aborting connection: ");
-    ntries = getInputInt(1, 15);
-
-    printf("\nTime in seconds to wait until a timeout: ");
-    timeout = getInputInt(1, 15);
-
-    if (role == 0) {
-        printf("\nName for the received file: "); 
-	filename = getInputString();
-    }
-
-    else {
-        printf("\nFile to send:  "); 
-	filename = getInputString();
-    }
-
-    printf("\nserial port: %s", port);
-    printf("\nrole: %d", role);
-    printf("\nntries: %d", ntries);
-    printf("\ntimeout: %d", timeout);
-    printf("\nfilename: %s", filename);
-
-}
-*/
 
 char* getInputString() 
 {

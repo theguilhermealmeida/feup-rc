@@ -76,17 +76,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         transmitter(fd, filename);
         llclose(fd);
 
-        // unsigned char *string1 = (unsigned char *)"a~~oz";
-        // unsigned char *string2 = (unsigned char *)"a}}oz";
-        // unsigned char *string3 = (unsigned char *)">@";
-        // unsigned char *string4 = (unsigned char *)"O tiago e mau";
-        // unsigned char *string5 = (unsigned char *)"O joao e feio";
-        // llwrite(fd, string1, 6);
-        // llwrite(fd, string2, 6);
-        // llwrite(fd, string3, 3);
-        // llwrite(fd, string4, 14);
-        // llwrite(fd, string5, 14);
-
         gettimeofday(&t_end, NULL);
         double time_spent = (t_end.tv_sec - t_start.tv_sec) * 1e6;
         time_spent = (time_spent + (t_end.tv_usec - t_start.tv_usec)) * 1e-6;
