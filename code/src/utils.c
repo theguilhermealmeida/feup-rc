@@ -1,7 +1,9 @@
-#include "utils.h"
 #include <sys/stat.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include "utils.h"
+#include "application_layer.h"
 
 void createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
 {
@@ -12,7 +14,6 @@ void createBCC(const unsigned char *src, unsigned char *newBuff, int bufSize)
         BCC2 ^= src[i];
     }
     newBuff[bufSize] = BCC2;
-    // newBuff[bufSize] = 0;
 }
 
 int byte_stuffing(unsigned char *buf, int bufSize)
@@ -169,3 +170,44 @@ void printStatistics(int role, int RR, int REJ)
         printf("Number of  REJ sent: %d\n", REJ);
     }
 }
+
+
+char* getInputString() 
+{
+    int done = 0;
+    char* inputs = (char*) malloc(256 * sizeof(char));
+
+    while (!done) {
+        if (scanf("%s", inputs) == 1) done = 1;
+	else {
+	   printf("\nInvalid input, try again!\n");
+	}
+
+        clearInputBuffer();
+    }
+
+    return inputs;
+}
+
+
+int getInputInt(int start, int end) 
+{ 
+    int input;
+    int done = 0;
+    while (!done) {
+       if (scanf("%d", &input) == 1 && input >= start && input <= end) {
+	   done = 1;
+       }
+       else printf("\nInvalid input, try again!\n");
+
+       clearInputBuffer();
+    }
+
+    return input;
+}
+
+void clearInputBuffer() {
+	int c;
+	while ((c = getchar()) != '\n' && c != EOF);
+}
+

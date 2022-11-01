@@ -35,5 +35,11 @@ void printProgressBar(float current, float total);
 
 void printStatistics(int role, int RR , int REJ);
 
+void clearInputBuffer();
+
+char* getInputString();
+
+int getInputInt(int start, int end);
+
 
 #endif // _UTIL_H_

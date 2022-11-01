@@ -17,6 +17,22 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 
 {
+    printf("Starting link-layer protocol application\n"
+		    " - Serial port: %s\n"
+		    " - Role:  %s\n"
+		    " - Baudrate: %d\n"
+		    " - Number of tries: %d\n"
+		    " - Timeout: %d\n"
+		    " - Filename: %s\n",
+		    serialPort, 
+		    role,
+		    baudRate,
+		    nTries,
+		    timeout,
+		    filename);
+		    
+    sleep(2);
+
     struct timeval r_start, t_start, r_end, t_end;
     FileName = malloc(sizeof(filename));
 
@@ -59,17 +75,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         transmitter(fd, filename);
         llclose(fd);
-
-        // unsigned char *string1 = (unsigned char *)"a~~oz";
-        // unsigned char *string2 = (unsigned char *)"a}}oz";
-        // unsigned char *string3 = (unsigned char *)">@";
-        // unsigned char *string4 = (unsigned char *)"O tiago e mau";
-        // unsigned char *string5 = (unsigned char *)"O joao e feio";
-        // llwrite(fd, string1, 6);
-        // llwrite(fd, string2, 6);
-        // llwrite(fd, string3, 3);
-        // llwrite(fd, string4, 14);
-        // llwrite(fd, string5, 14);
 
         gettimeofday(&t_end, NULL);
         double time_spent = (t_end.tv_sec - t_start.tv_sec) * 1e6;

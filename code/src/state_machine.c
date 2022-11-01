@@ -5,10 +5,6 @@ extern int nr;
 
 STATE state_machine(unsigned char buf, STATE state, unsigned char *data, int *count_data)
 {
-    // printf("ns: %d\n", ns);
-    // printf("nr: %d\n", nr);
-    // printf("state: %d\n", (int)state);
-    // printf("%d\n", buf);
 
     switch (state)
     {
