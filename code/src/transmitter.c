@@ -31,7 +31,7 @@ int transmitter(int fd, const char *filename)
         sendDataPacket(fd,sequenceNr,bytes,buffer);
 	
 	writtenBytes += bytes;
-	//printProgressBar(writtenBytes, file_stat.st_size);
+	printProgressBar(writtenBytes, file_stat.st_size);
         sequenceNr++;
     }
 

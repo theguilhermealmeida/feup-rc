@@ -50,7 +50,7 @@ int readPacket(unsigned char *packet)
         }
         int datasize = packet[3] + 256 * packet[2];
         currentsize += datasize;
-        //printProgressBar(currentsize,filesize);
+        printProgressBar(currentsize,filesize);
         if (write(newFile, &packet[4], datasize) < 0)
         {
             printf("Error writing to file!");
@@ -80,7 +80,6 @@ int readControlPacket(unsigned char *packet, char *filename, int *filesize)
             name[i] = packet[L1 + 5 + i];
         }
         name[L2] = '\0';
-        name[0] = 'A';
         strcpy(filename, name);
     }
 
