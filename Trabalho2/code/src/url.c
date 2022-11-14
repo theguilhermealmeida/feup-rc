@@ -7,8 +7,10 @@ int getIp(char* adress,URL *url){
         printf("Error getting host by name!\n");
         return -1;
     }
-    strcpy(url->host_name,h->h_name);
+
     strcpy(url->ip,inet_ntoa(*((struct in_addr *) h->h_addr)));
+    strcpy(url->host_name,h->h_name);
+    
     return 0;
 }
 
@@ -28,7 +30,7 @@ int parseUrl(char* text, URL *url){
 
     if (pass == NULL ){
         user = "anonymous";
-        pass = "pass";
+        pass = "something";
         strcpy(url->host,usrpasshost);
     }
     else{
@@ -44,14 +46,10 @@ int parseUrl(char* text, URL *url){
         return -1;
     }
 
-
-    char fullpath[128];
-    strcpy(fullpath,url->path); //to not change path
-    char* tkn = strtok(fullpath,"/");
-    while(tkn!=NULL){
-        strcpy(url->filename,tkn);
-        tkn = strtok(NULL,"/");
-    }
+    //getting filename
+    char* ptr = strrchr(url->path, '/');
+    ptr++; // ignoring '/'
+    strcpy(url->filename, ptr);
 
     return 0;
 }
