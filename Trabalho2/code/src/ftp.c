@@ -25,3 +25,73 @@ int startSocket(int * sockfd, char* ip, int port){
 
     return 0;
 }
+
+int readResponse(FILE* socketResponse ,char* response,size_t size){
+
+    while(fgets(response,size,socketResponse)){
+        printf("%s",response);
+        if(response[3] == ' '){
+            break;
+        }
+    }
+
+    return 0;
+}
+
+int readIp_Port(FILE* socketResponse ,char* response,size_t size,char* ip,int * port){
+
+    while(fgets(response,size,socketResponse)){
+        printf("%s",response);
+        if(response[3] == ' '){
+            break;
+        }
+    }
+
+    strtok(response,"(");
+    char* ip_1 = strtok(NULL, ",");
+    char* ip_2 = strtok(NULL, ",");
+    char* ip_3 = strtok(NULL, ",");
+    char* ip_4 = strtok(NULL, ",");
+    char* port_1 = strtok(NULL, ",");
+    char* port_2 = strtok(NULL, ")");
+
+    sprintf(ip,"%s.%s.%s.%s",ip_1,ip_2,ip_3,ip_4);
+    *port = atoi(port_1)*256 + atoi(port_2); 
+
+    return 0;
+}
+
+int sendCommand(int sockfd, char* command){
+
+    size_t bytes = write(sockfd, command, strlen(command));
+    if (bytes > 0)
+        printf("Bytes escritos %ld\n", bytes);
+    else {
+        perror("write()");
+        return -1;
+    }
+
+    return 0;
+}
+
+int saveFile(char * filename, int sockfd){
+    int filefd = open(filename,O_WRONLY| O_CREAT,0777);
+    if(filefd < 0){
+        perror("open file");
+        return 1;
+    }
+
+    size_t bytes;
+    char buffer[512];
+
+    do{
+        bytes = read(sockfd,buffer,512);
+        if(bytes > 0){
+            write(filefd,buffer,bytes);
+        }
+    }while(bytes!=0);
+
+    close(filefd);
+
+    return 0;
+}
