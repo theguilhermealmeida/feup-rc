@@ -31,10 +31,16 @@ int readResponse(FILE* socketResponse ,char* response,size_t size){
     while(fgets(response,size,socketResponse)){
         printf("%s",response);
         if(response[3] == ' '){
+            int code = atoi(response);
+            printf("command %d\n",code);
+            if (code == 550 || code == 530)
+            {
+                printf("Command error\n");
+                return -1;
+            }
             break;
         }
     }
-
     return 0;
 }
 
@@ -78,7 +84,7 @@ int saveFile(char * filename, int sockfd){
     int filefd = open(filename,O_WRONLY| O_CREAT,0777);
     if(filefd < 0){
         perror("open file");
-        return 1;
+        return -1;
     }
 
     size_t bytes;

@@ -25,21 +25,35 @@ int download(char* ftp_link){
     FILE* socketResponse = fdopen(sockfd,"r");
     char response[512];
 
-    readResponse(socketResponse,response,512);
-
+    if(readResponse(socketResponse,response,512)!=0){
+        return -1;
+    }
+    
     sprintf(command, "user %s\n",url.user); //pode faltar \r em windows
-    sendCommand(sockfd,command);
-    readResponse(socketResponse,response,512);
+    if(sendCommand(sockfd,command)!=0){
+        return -1;
+    }
+    if(readResponse(socketResponse,response,512)!=0){
+        return -1;
+    }
     sprintf(command, "pass %s\n",url.password);
-    sendCommand(sockfd,command);
-    readResponse(socketResponse,response,512);
+    if(sendCommand(sockfd,command)!=0){
+        return -1;
+    }
+    if(readResponse(socketResponse,response,512)!=0){
+        return -1;
+    }
 
     char ip[32];
     int port;
 
     sprintf(command, "pasv\n");
-    sendCommand(sockfd,command);
-    readIp_Port(socketResponse,response,512,ip,&port);
+    if(sendCommand(sockfd,command)!=0){
+        return -1;
+    }
+    if(readIp_Port(socketResponse,response,512,ip,&port)!=0){
+        return -1;
+    }
 
     printf("ip: %s    port: %d\n",ip,port);
 
@@ -49,10 +63,17 @@ int download(char* ftp_link){
     }
 
     sprintf(command,"retr %s\n",url.path);
-    sendCommand(sockfd,command);
-    readResponse(socketResponse,response,512);
+    if(sendCommand(sockfd,command)!=0){
+        return -1;
+    }
+    if(readResponse(socketResponse,response,512)!=0){
+        return -1;
+    }
 
-    saveFile(url.filename,sockfd_b);
+    if(saveFile(url.filename,sockfd_b)!=0){
+        return -1;
+    }
+    
 
     return 0;
 

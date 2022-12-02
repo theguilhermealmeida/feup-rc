@@ -18,6 +18,8 @@ typedef struct{
     char host_name[128];
 } URL;
 
+int getFileName(char* path,char* filename);
+
 int parseUrl(char* text, URL *url);
 
 int getIp(char* adress,URL *url);
