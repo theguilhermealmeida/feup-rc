@@ -15,7 +15,7 @@ int download(char* ftp_link){
         return -1;
     }
 
-    printf("user:%s\npassword:%s\nhost:%s\npath:%s\nip:%s\nfilename:%s\nhost_name:%s\n",url.user,url.password,url.host,url.path,url.ip,url.filename,url.host_name);
+    //printf("user:%s\npassword:%s\nhost:%s\npath:%s\nip:%s\nfilename:%s\nhost_name:%s\n",url.user,url.password,url.host,url.path,url.ip,url.filename,url.host_name);
 
     if(startSocket(&sockfd,url.ip,21) !=0){
         printf("Error starting socket\n");
@@ -72,6 +72,25 @@ int download(char* ftp_link){
 
     if(saveFile(url.filename,sockfd_b)!=0){
         return -1;
+    }
+
+    sprintf(command,"quit");
+    if(readResponse(socketResponse,response,512)!=0){
+        return -1;
+    }
+
+    if(sendCommand(sockfd,command)!=0){
+        return -1;
+    }
+
+    if (close(sockfd)<0) {
+        perror("close()");
+        exit(-1);
+    }
+
+    if (close(sockfd_b)<0) {
+        perror("close()");
+        exit(-1);
     }
     
 

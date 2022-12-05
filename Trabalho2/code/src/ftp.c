@@ -32,7 +32,6 @@ int readResponse(FILE* socketResponse ,char* response,size_t size){
         printf("%s",response);
         if(response[3] == ' '){
             int code = atoi(response);
-            printf("command %d\n",code);
             if (code == 550 || code == 530)
             {
                 printf("Command error\n");
@@ -70,8 +69,9 @@ int readIp_Port(FILE* socketResponse ,char* response,size_t size,char* ip,int * 
 int sendCommand(int sockfd, char* command){
 
     size_t bytes = write(sockfd, command, strlen(command));
-    if (bytes > 0)
-        printf("Bytes escritos %ld\n", bytes);
+    if (bytes > 0){
+        printf("%s", command);
+    }
     else {
         perror("write()");
         return -1;
@@ -79,6 +79,7 @@ int sendCommand(int sockfd, char* command){
 
     return 0;
 }
+
 
 int saveFile(char * filename, int sockfd){
     int filefd = open(filename,O_WRONLY| O_CREAT,0777);
@@ -101,3 +102,4 @@ int saveFile(char * filename, int sockfd){
 
     return 0;
 }
+
