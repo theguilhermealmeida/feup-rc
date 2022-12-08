@@ -81,7 +81,30 @@ int sendCommand(int sockfd, char* command){
 }
 
 
-int saveFile(char * filename, int sockfd){
+void printProgressBar(float current, float total)
+{
+    usleep(500); // to better visualize progress bar
+    float percentage = 100.0 * current / total;
+
+    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    printf("\n%.2f%% [", percentage);
+
+    int len = 50;
+    int pos = percentage * len / 100.0;
+    for (int i = 0; i < len; i++)
+        i <= pos ? printf("#") : printf(" ");
+
+    printf("]\n");
+}
+
+int getFileSize(char * response){
+    strtok(response,"(");
+    char* size = strtok(NULL, " ");
+    return atoi(size);
+}
+
+int saveFile(char * filename, int sockfd,int fileSize){
+    static int currentsize = 0;
     int filefd = open(filename,O_WRONLY| O_CREAT,0777);
     if(filefd < 0){
         perror("open file");
@@ -89,11 +112,13 @@ int saveFile(char * filename, int sockfd){
     }
 
     size_t bytes;
-    char buffer[512];
+    char buffer[2048];
 
     do{
-        bytes = read(sockfd,buffer,512);
+        bytes = read(sockfd,buffer,2048);
         if(bytes > 0){
+            currentsize+=bytes;
+            printProgressBar(currentsize,fileSize);
             write(filefd,buffer,bytes);
         }
     }while(bytes!=0);

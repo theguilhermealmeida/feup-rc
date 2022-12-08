@@ -70,7 +70,12 @@ int download(char* ftp_link){
         return -1;
     }
 
-    if(saveFile(url.filename,sockfd_b)!=0){
+    int fileSize = getFileSize(response);
+
+    printf("Press ENTER key to Continue\n");  
+    getchar();
+    
+    if(saveFile(url.filename,sockfd_b,fileSize)!=0){
         return -1;
     }
 
