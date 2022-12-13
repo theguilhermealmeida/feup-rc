@@ -1,0 +1,23 @@
+## Cable Connections
+
+### General
+gnu52 E0 -> 12  
+gnu53 E0 -> 8  
+gnu54 E0 -> 18  
+gnu54 E1 -> 22  
+ETH2 (Router) -> 24  
+ETH1 (Router) ->  P5.1 (On top)
+### For Switch GTK
+Console -> RS232 -> cisco -> RS232 -> gnu52 S0
+### For Router GTK
+Router MTIK -> RS232 -> cisco -> RS232 -> gnu52 S0
+
+## Reset previous configurations
+### For each gnu
+systemctl restart networking  
+route -n  
+route del -net *ip*  (If there is extra routes)
+### For Switch GTK & Router GTK
+/system reset-configuration  
+-y  
+-[ENTER]

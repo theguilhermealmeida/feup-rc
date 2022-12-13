@@ -1,0 +1,22 @@
+GNU 2:
+ifconfig eth0 down
+ifconfig eth0 up
+ifconfig eth0 172.16.51.1/24
+ifconfig para ver IP MAC
+
+IP - 172.16.51.1
+MAC - 00:21:5a:5a:7c:e7
+
+MIKROTIK SWITCH:
+/interface bridge add name=bridge50  
+/interface bridge add name=bridge51 
+
+Remover portas da default (etherX: X corresponde à porta do switch)
+/interface bridge port remove [find interface=ether8]  
+/interface bridge port remove [find interface=ether12]  
+/interface bridge port remove [find interface=ether18] 
+
+Adicionar portas do tux2,3 e 4 ao bridgeY0 correspondente:
+/interface bridge port add bridge=bridge50 interface=ether8  
+/interface bridge port add bridge=bridge50 interface=ether18  
+/interface bridge port add bridge=bridge51 interface=ether12  

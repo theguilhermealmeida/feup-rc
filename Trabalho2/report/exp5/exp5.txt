@@ -1,0 +1,15 @@
+MIKORTIK ROUTER:
+
+add default gateway to have internet:
+/ip route add dst-address=0.0.0.0/0 gateway=172.16.2.254
+
+enable nat:
+/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1
+
+EACH GNU:
+
+configure DNS:
+edit the resolv.conf in the text editor:
+nameserver 172.16.2.1
+
+ping google.com

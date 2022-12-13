@@ -1,0 +1,50 @@
+MIKROTIK ROUTER:
+
+ip address add address=172.16.2.59/24 interface=ether1  
+ip address add address=172.16.51.254/24 interface=ether2
+
+MIKROTIK SWITCH:
+
+/interface bridge port remove [find interface=ether24]
+/interface bridge port add bridge=bridge51 interface=ether24
+
+GNU2:
+route add default gw 172.16.51.254  
+
+GNU3:
+route add default gw 172.16.50.254 
+
+GNU4:
+route add default gw 172.16.51.254 
+
+MIKROTIK ROUTER:
+
+/ip route add dst-address=172.16.50.0/24 gateway=172.16.51.253
+
+GNU2:
+echo 0 > /proc/sys/net/ipv4/conf/eth0/accept_redirects
+echo 0 > /proc/sys/net/ipv4/conf/all/accept_redirects
+
+route del -net 172.16.50.0/24
+
+traceroute 172.16.50.1
+route add -net 172.16.50.0/24 gw 172.16.51.253
+traceroute 172.16.50.1
+
+route del -net 172.16.50.0/24
+
+to activate acceptance of icmp:
+echo 1 > /proc/sys/net/ipv4/conf/eth0/accept_redirects
+echo 1 > /proc/sys/net/ipv4/conf/all/accept_redirects
+conclusion: we just do one initial hop to 172.16.51.254 and then it will know where to go (the router answers where to go)
+
+
+GNU3:
+ping 172.16.2.254 (to get to the network, tux 3 just knows that he needs to send to the default gateway tux4, the tux4 only knows he has to send to the rc)
+
+MIKROTIK ROUTER:
+
+/ip firewall nat disable 0
+
+GNU3:
+ping 172.16.2.254 (an error occured because rc doesn't know how to get to the network becuase nat is disabled so it doesnt convert private to public ip)
